@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random as rd
 
-def generate_x():
+
+
+def generate_x(): # Generate a random input vector and conjunctions
     x1 = rd.randint(0,1)
     x2 = rd.randint(0,1)
     x3 = rd.randint(0,1)
@@ -22,7 +24,7 @@ def generate_x():
     x = np.array([1, x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15])
     return x
 
-def generate_x(pair, val1, val2):
+def generate_x(pair, val1, val2): # Generate an input vector with two specified values
     x = np.zeros(16)
     x[0] = 1
     x[pair[0]] = val1
@@ -42,34 +44,31 @@ def generate_x(pair, val1, val2):
     
     return x
 
-def initialize_w():
+def initialize_w(): # Generate a Random weight vector
     w = np.zeros(16, dtype=float)
 
     for i in range(0, len(w)):
         w[i] = rd.random()
     return w
 
-def sigmoid(x):
-    return 1 / (1+np.exp(-x))
-
-def perceptron(x, w):
+def perceptron(x, w): # Mcculloch Perceptron 
     sum = np.dot(x, w)
     if(sum >= 0):
         return 1
     return 0
 
-def generate_data(N):
+def generate_data(N): # Generates a set of random input vectors
     data = []
     for i in range(N):
         data.append(generate_x())
     return np.array(data)
 
-def uneven_bits(x):
+def uneven_bits(x): # Target function
     if np.sum(x[1:5]) %2 == 1:
         return 1
     return 0
 
-def train(w):
+def train(w): # Generates all possible input vectors and optimizes w 
     errors = 0
     epoch = 1
     errorshistory = []
@@ -107,18 +106,23 @@ def train(w):
 
 
 w = initialize_w()
-w = np.zeros(len(w))
+#w = np.zeros(len(w))
 w, errorhist = train(w)
 errorhist = np.array(errorhist)
 
-# plt.plot(errorhist[:,0], errorhist[:, 1])
-# plt.grid()
-# plt.show()
+print("Gewichte w = ", w)
+
+plt.plot(errorhist[:,0], errorhist[:, 1])
+plt.grid()
+plt.ylabel("Anzahl Fehler")
+plt.xlabel("Anzahl Trainingsläufe")
+plt.show()
 
 
 pairs = [(1,2),(1,3),(1,4),(2,3),(2,4),(3,4)]
 steps = np.arange(0, 1.1, 0.1)
 
+### Plotting logic
 
 for pair in pairs:
     fig, ax = plt.subplots()

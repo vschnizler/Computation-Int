@@ -142,6 +142,7 @@ for pair in pairs:
     ax.set_title(f"Perceptron Output $ \quad (x_{pair[0]}, x_{pair[1]})$")
     ax.set_ylabel(f"$x_{pair[0]}$")
     ax.set_xlabel(f"$x_{pair[1]}$")
+    plt.savefig("Perceptron" +  str(pair), dpi=400)
     plt.show()
 
 for pair in pairs:
@@ -163,4 +164,5 @@ for pair in pairs:
     ax.set_title(f"$ w * x \quad (x_{pair[0]}, x_{pair[1]})$")
     ax.set_ylabel(f"$x_{pair[0]}$")
     ax.set_xlabel(f"$x_{pair[1]}$")
+    plt.savefig("Weights" +  str(pair), dpi=400)
     plt.show()

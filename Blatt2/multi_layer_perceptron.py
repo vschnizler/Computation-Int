@@ -14,6 +14,18 @@ def fermi_dirac(x: float):
 def gen_weight():
     return float(2*(np.random.random() - 0.5))
 
+# Target to be learned
+def target_function(x):
+    return(
+        np.sin(np.abs(x) + 0.5) - 3*np.cos(-x) + 0.7*x
+    )
+
+# Square Loss
+def loss_func(t,y):
+    return(
+        0.5 * (t-y)**2
+    )
+
 class Neuron:
     def __init__(self,
                summation_func: Callable[[np.ndarray, np.ndarray], float],
@@ -52,9 +64,9 @@ class MultiLayerPerceptron:
         ]
         
         # Build a list of matrices for propagation between each layer
-        self.matrices: list[list[np.ndarray[float]]] = [
+        self.matrices = [
             [
-            [gen_weight() for prev_neuron in range(len(self.neuron_structure[layer_index-1]))]
+            np.array([gen_weight() for prev_neuron in range(len(self.neuron_structure[layer_index-1]))])
             for neuron_index in range(len(self.neuron_structure[layer_index]) -1)]
             for layer_index in range(1, len(self.neuron_structure))
         ]
@@ -63,16 +75,21 @@ class MultiLayerPerceptron:
     def activation_vector(self, layer_index: int):
         activation = []
         for neuron in (self.neuron_structure[layer_index]):
-            activation.append(neuron.activation) 
-        activation[-1] = 1 # Sets activation of bias neuron to 1
-        return activation
+            activation.append(float(neuron.activation)) 
+        activation[-1] = 1.0 # Sets activation of bias neuron to 1
+        return np.array(activation)
     
     # Computes Network output for a given input vector
     # Sets activation for all layers
     def forward_run(self, input: np.ndarray):
         
+        if(len(input) != len(self.neuron_structure[0]) - 1):
+            print("Input vector and input neuron mismatch ", len(input), "  and   ", len(self.neuron_structure[0])-1)
+            return
+        
         for index, value in enumerate(input):
-            self.neuron_structure[0][index].activation = value # Sets activation of dummy input neuron to the input
+            print(value)
+            self.neuron_structure[0][index].activation = float(value) # Sets activation of dummy input neuron to the input
         
         self.neuron_structure[0][-1].activation = 1 # Sets activation of bias neuron to 1
         
@@ -86,13 +103,6 @@ class MultiLayerPerceptron:
                 )
         self.result = self.activation_vector(-1)[:-1]            # Activation of final layer gives result. [:-1] cutts of bias neuron in output
         
-   
-        
-    
-    
-    
-
-    
 test = MultiLayerPerceptron(
     [1, 20, 1],
     1,
@@ -100,8 +110,11 @@ test = MultiLayerPerceptron(
     vector_dot,
     fermi_dirac
 )
-test.forward_run(np.array([1]))
-print(test.result)
+
+training_data = target_function(np.linspace(-10, 10, 1001))
+
+for data in training_data:
+    test.forward_run(np.array([data]))
 
 
     

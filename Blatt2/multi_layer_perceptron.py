@@ -25,7 +25,7 @@ def linear_func_derivative(x):
 
 # Generates a weight from (-1,1)
 def gen_weight():
-    return float(2*(np.random.random() - 0.5))
+    return float(2.0*(np.random.random() - 0.5))
 
 # Target to be learned
 def target_function(x):
@@ -98,6 +98,12 @@ class MultiLayerPerceptron:
         activation[-1] = 1.0 # Sets activation of bias neuron to 1
         return np.array(activation)
     
+    def delta_vector(self, layer_index: int):
+        delta = []
+        for neuron in (self.neuron_structure[layer_index]):
+            delta.append(float(neuron.delta)) 
+        return np.array(delta)
+    
     # Computes Network output for a given input vector
     # Sets activation for all layers
     def forward_run(self, input: np.ndarray):
@@ -122,6 +128,7 @@ class MultiLayerPerceptron:
         self.result = self.activation_vector(-1)[:-1]            # Activation of final layer gives result. [:-1] cutts of bias neuron in output
     
     
+    # Only trains weights between last hidden layer and output layer
     def backpropagation_final_layer(self, input, target_func, loss_func, transfer_derivative,loss_func_derviative, lerning_rate):
         
         target_values = target_func(input)
@@ -131,15 +138,17 @@ class MultiLayerPerceptron:
         self.calculate_deltas_final_layer(target_values, transfer_derivative, loss_func_derviative)
         self.update_weights_final_layer(lerning_rate)
         
-        return loss_func(np.array(target_values), np.array(self.result))
+        return loss_func(np.array(target_values), np.array(self.result))  # For Training Progress Tracking
     
+    # Calculates Deltas for each Neuron in last hidden layer
     def calculate_deltas_final_layer(self, target_values, transfer_derivative, loss_func_derivative):
         
+        t = float(np.squeeze(target_values))    # Python macht komische Sachen das fixt es
+        y = float(np.squeeze(self.result))  
         for neuron in self.neuron_structure[-1][:-1]:
-            t = float(np.squeeze(target_values))
-            y = float(np.squeeze(self.result))
-            neuron.delta = float(loss_func_derivative(t,y ) * transfer_derivative(neuron.net))
-            
+                neuron.delta = float(loss_func_derivative(t,y ) * transfer_derivative(neuron.net))
+    
+    # Updates Final Layer Matrix weights
     def update_weights_final_layer(self, learning_rate):
         
         for neuron_index, matrixelement in enumerate(self.matrices[-1]):
@@ -149,6 +158,41 @@ class MultiLayerPerceptron:
             self.matrices[-1][neuron_index] = matrixelement - learning_rate*self.neuron_structure[-1][neuron_index].delta * prev_activation
             
             
+    # Backprop through all layers
+    def backpropagation(self, input, target_func, loss_func, transfer_derivative,loss_func_derviative, lerning_rate):
+        
+        target_values = target_func(input)
+
+        self.forward_run(input)
+        self.calculate_deltas(target_values, transfer_derivative, loss_func_derviative)
+        self.update_weights(lerning_rate)
+        
+        return loss_func(np.array(target_values), np.array(self.result))
+    
+    def calculate_deltas(self, target_values, transfer_derivative, loss_func_derivative):
+        
+        self.calculate_deltas_final_layer(target_values, transfer_derivative, loss_func_derivative)
+        
+        for layer_index in range(len(self.neuron_structure) -2, 0, -1):
+            
+            for neuron_index, neuron in enumerate(self.neuron_structure[layer_index][:-1]):
+                
+                downstream_sum = sum(
+                self.matrices[layer_index][next_neuron_index][neuron_index] * next_neuron.delta
+                for next_neuron_index, next_neuron in enumerate(self.neuron_structure[layer_index + 1][:-1])
+                )
+                neuron.delta = float(transfer_derivative(neuron.net) * downstream_sum)
+    
+    
+    def update_weights(self, learning_rate):
+        for layer_index in range(1, len(self.neuron_structure)):
+            prev_activation = self.activation_vector(layer_index - 1)
+            for neuron_index, matrixelement in enumerate(self.matrices[layer_index - 1]):
+                self.matrices[layer_index - 1][neuron_index] = (
+                    matrixelement - learning_rate * self.neuron_structure[layer_index][neuron_index].delta * prev_activation
+                )
+    
+    
         
 test = MultiLayerPerceptron(
     [1, 20, 1],
@@ -161,12 +205,12 @@ test = MultiLayerPerceptron(
 x = np.linspace(-10, 10, 1001)
 errorhist=[]
 
-training_runs = 10000
+training_runs = 400
 
 for run_num in range(training_runs):
     run_hist = []
     for x_scalar in x:
-        run_hist.append(test.backpropagation_final_layer(np.array([x_scalar]), target_function, loss_func, linear_func_derivative, loss_func_derviative, 0.001))
+        run_hist.append(test.backpropagation(np.array([x_scalar]), target_function, loss_func, linear_func_derivative, loss_func_derviative, 0.001))
     errorhist.append(np.average(run_hist))
 plot_yvals = []
 

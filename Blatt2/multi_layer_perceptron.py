@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Callable, List
-
+import matplotlib.pyplot as plt
 
 # Dot Produt
 def vector_dot(x: np.ndarray, w: np.ndarray):
@@ -10,6 +10,19 @@ def vector_dot(x: np.ndarray, w: np.ndarray):
 def fermi_dirac(x: float):
     return 1/ (1+ np.exp(-x))
 
+def fermi_dirac_derivative(x):
+    return(
+        np.exp(-x)/((1+np.exp(-x))**2)
+    )
+
+def linear_func(x):
+    return(
+        x
+    )
+
+def linear_func_derivative(x):
+    return 1.0
+
 # Generates a weight from (-1,1)
 def gen_weight():
     return float(2*(np.random.random() - 0.5))
@@ -17,13 +30,19 @@ def gen_weight():
 # Target to be learned
 def target_function(x):
     return(
-        np.sin(np.abs(x) + 0.5) - 3*np.cos(-x) + 0.7*x
+        np.sin(15/(np.abs(x) + 0.5)) - 3*np.cos(-x) + 0.7*x
     )
 
 # Square Loss
 def loss_func(t,y):
     return(
         0.5 * (t-y)**2
+    )
+
+# Derivative of square loss
+def loss_func_derviative(t,y):
+    return(
+        -(t-y)
     )
 
 class Neuron:
@@ -62,7 +81,7 @@ class MultiLayerPerceptron:
             [Neuron(summation_func, transfer_func) for neuron_index in range(0,network_structure[layer_index]+1)] # +1 for Bias neuron with permanent activation 1
             for layer_index in range(0, len(network_structure))
         ]
-        
+        self.neuron_structure[-1][0].transfer_fn = linear_func
         # Build a list of matrices for propagation between each layer
         self.matrices = [
             [
@@ -88,7 +107,6 @@ class MultiLayerPerceptron:
             return
         
         for index, value in enumerate(input):
-            print(value)
             self.neuron_structure[0][index].activation = float(value) # Sets activation of dummy input neuron to the input
         
         self.neuron_structure[0][-1].activation = 1 # Sets activation of bias neuron to 1
@@ -102,6 +120,35 @@ class MultiLayerPerceptron:
                     self.matrices[layer_index-1][neuron_index]      # Matrix between layer[i-1] and layer[i] gives input of layer[i]. Skips bias neuron of current layer, since activation is always 1
                 )
         self.result = self.activation_vector(-1)[:-1]            # Activation of final layer gives result. [:-1] cutts of bias neuron in output
+    
+    
+    def backpropagation_final_layer(self, input, target_func, loss_func, transfer_derivative,loss_func_derviative, lerning_rate):
+        
+        target_values = target_func(input)
+        
+        
+        self.forward_run(input)
+        self.calculate_deltas_final_layer(target_values, transfer_derivative, loss_func_derviative)
+        self.update_weights_final_layer(lerning_rate)
+        
+        return loss_func(np.array(target_values), np.array(self.result))
+    
+    def calculate_deltas_final_layer(self, target_values, transfer_derivative, loss_func_derivative):
+        
+        for neuron in self.neuron_structure[-1][:-1]:
+            t = float(np.squeeze(target_values))
+            y = float(np.squeeze(self.result))
+            neuron.delta = float(loss_func_derivative(t,y ) * transfer_derivative(neuron.net))
+            
+    def update_weights_final_layer(self, learning_rate):
+        
+        for neuron_index, matrixelement in enumerate(self.matrices[-1]):
+           
+            prev_activation = self.activation_vector(len(self.neuron_structure) - 2)
+            
+            self.matrices[-1][neuron_index] = matrixelement - learning_rate*self.neuron_structure[-1][neuron_index].delta * prev_activation
+            
+            
         
 test = MultiLayerPerceptron(
     [1, 20, 1],
@@ -111,14 +158,29 @@ test = MultiLayerPerceptron(
     fermi_dirac
 )
 
-training_data = target_function(np.linspace(-10, 10, 1001))
+x = np.linspace(-10, 10, 1001)
+errorhist=[]
 
-for data in training_data:
-    test.forward_run(np.array([data]))
+training_runs = 10000
+
+for run_num in range(training_runs):
+    run_hist = []
+    for x_scalar in x:
+        run_hist.append(test.backpropagation_final_layer(np.array([x_scalar]), target_function, loss_func, linear_func_derivative, loss_func_derviative, 0.001))
+    errorhist.append(np.average(run_hist))
+plot_yvals = []
 
 
-    
-    
-        
-    
-    
+plt.plot(np.linspace(0, len(errorhist), len(errorhist)), errorhist)
+plt.grid()
+plt.show()
+for x_scalar in x:
+    test.forward_run(np.array([x_scalar]))
+    plot_yvals.append(test.result)
+
+
+
+plt.plot(x, plot_yvals)
+plt.plot(x, target_function(x))
+plt.grid()
+plt.show()
